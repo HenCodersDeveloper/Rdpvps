@@ -1,0 +1,40 @@
+name: HenCoders RDP Setup
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 9999
+
+    steps:
+    - name: Mengunduh File yang Diperlukan
+      run: |
+        Invoke-WebRequest https://raw.githubusercontent.com/HenCodersDeveloper/HenDeveloper/refs/heads/main/start.bat -OutFile start.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/HenCodersDeveloper/HenDeveloper/refs/heads/main/HenCoders.png -OutFile HenCoders.png
+        Invoke-WebRequest https://raw.githubusercontent.com/HenCodersDeveloper/HenDeveloper/refs/heads/main/wallpaper.bat -OutFile wallpaper.bat
+        Invoke-WebRequest https://raw.githubusercontent.com/HenCodersDeveloper/HenDeveloper/refs/heads/main/loop.bat -OutFile loop.bat
+        Invoke-WebRequest https://github.com/cloudflare/cloudflared/releases/download/2023.10.0/cloudflared-windows-amd64.zip -OutFile cloudflared.zip
+
+    - name: Mengekstrak File Cloudflare
+      run: Expand-Archive cloudflared.zip -DestinationPath cloudflared
+
+    - name: Menyambungkan ke Cloudflare Tunnel
+      run: .\cloudflared\cloudflared.exe tunnel login
+
+    - name: Mengaktifkan Akses ke RDP
+      run: |
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+        Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+        Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 1
+        copy HenCoders.png C:\Users\Public\Desktop\HenCoders.png
+        copy wallpaper.bat C:\Users\Public\Desktop\wallpaper.bat
+
+    - name: Membuka Tunnel Cloudflare
+      run: Start-Process Powershell -ArgumentList '-Noexit -Command ".\cloudflared\cloudflared.exe tunnel --url rdp://localhost:3389"'
+
+    - name: Memulai Konfigurasi RDP
+      run: cmd /c start.bat
+
+    - name: Pengaturan Selesai! Anda Bisa Menutup Tab Ini.
+      run: cmd /c loop.bat
